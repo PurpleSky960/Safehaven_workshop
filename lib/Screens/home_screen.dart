@@ -6,6 +6,7 @@ import 'package:safehaven/Screens/map_screen.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:path_provider/path_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -32,8 +33,10 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _openGoogleLens(File imageFile) async {
-    final Uri lensUri = Uri.parse("https://lens.google.com/upload");
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _openGoogleLens() async {
+    final Uri lensUri = Uri.parse("https://lens.google.com/");
 
     if (await canLaunchUrl(lensUri)) {
       await launchUrl(lensUri, mode: LaunchMode.externalApplication);
@@ -42,16 +45,29 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  final ImagePicker _picker = ImagePicker();
+  // Capture image and store locally
+  Future<void> _captureAndSaveImage() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.camera);
 
-  Future<void> _pickImage(ImageSource source) async {
-    final XFile? image = await _picker.pickImage(source: source);
+    if (image == null) return;
 
-    if (image != null) {
-      _openGoogleLens(File(image.path));
+    final Directory appDir = await getApplicationDocumentsDirectory();
+    final String imagesDirPath = "${appDir.path}/captured_images";
+
+    final Directory imagesDir = Directory(imagesDirPath);
+    if (!await imagesDir.exists()) {
+      await imagesDir.create(recursive: true);
     }
+
+    final String newPath =
+        "$imagesDirPath/${DateTime.now().millisecondsSinceEpoch}.jpg";
+
+    await File(image.path).copy(newPath);
+
+    debugPrint("Image saved to: $newPath");
   }
 
+  // Bottom sheet options
   void _showImageSourceOptions(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -62,18 +78,18 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               ListTile(
                 leading: const Icon(Icons.camera_alt),
-                title: const Text("Camera"),
+                title: const Text("Open Camera"),
                 onTap: () {
                   Navigator.pop(context);
-                  _pickImage(ImageSource.camera);
+                  _captureAndSaveImage();
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.photo),
-                title: const Text("Gallery"),
+                leading: const Icon(Icons.search),
+                title: const Text("Open Google Lens"),
                 onTap: () {
                   Navigator.pop(context);
-                  _pickImage(ImageSource.gallery);
+                  _openGoogleLens();
                 },
               ),
             ],
@@ -87,7 +103,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _buildTopBar(),
-      body: _buildBody(),
+      body: Container(
+        height: double.infinity,
+        width: double.infinity,
+        decoration: BoxDecoration(color: const Color.fromARGB(255, 37, 17, 73)),
+        child: _buildBody(),
+      ),
       bottomNavigationBar: _buildBottomNavBar(),
     );
   }
@@ -96,8 +117,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
   PreferredSizeWidget _buildTopBar() {
     return AppBar(
-      backgroundColor: Colors.black,
+      elevation: 0,
+      backgroundColor: Colors.transparent,
       titleSpacing: 0,
+      iconTheme: const IconThemeData(color: Colors.white),
+      flexibleSpace: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.bottomLeft,
+            end: Alignment.topRight,
+            colors: [Colors.deepPurple, Colors.red],
+          ),
+        ),
+      ),
       title: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
@@ -108,7 +140,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 const CircleAvatar(
                   radius: 18,
-                  backgroundColor: Colors.grey,
+                  backgroundColor: Colors.white24,
                   child: Icon(Icons.person, color: Colors.white),
                 ),
                 Positioned(
@@ -118,7 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: 8,
                     height: 8,
                     decoration: const BoxDecoration(
-                      color: Colors.green, // online
+                      color: Colors.green,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -130,9 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
           // Location
           Expanded(
             child: GestureDetector(
-              onTap: () {
-                // share live location later
-              },
+              onTap: () {},
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
@@ -149,7 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // Small logo placeholder
+          // Logo
           const Text(
             "SH",
             style: TextStyle(
@@ -161,7 +191,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           const SizedBox(width: 12),
 
-          // Camera / scanner
+          // Camera
           IconButton(
             icon: const Icon(Icons.camera_alt),
             color: Colors.white,
@@ -170,7 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
 
-          // First aid codex
+          // First Aid
           IconButton(
             icon: const Icon(Icons.medical_services),
             color: Colors.white,
@@ -216,21 +246,46 @@ class _HomeScreenState extends State<HomeScreen> {
   // ================= BOTTOM NAV =================
 
   Widget _buildBottomNavBar() {
-    return BottomNavigationBar(
-      currentIndex: _currentIndex,
-      onTap: (index) {
-        setState(() {
-          _currentIndex = index;
-        });
-      },
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-        BottomNavigationBarItem(icon: Icon(Icons.contacts), label: "Contacts"),
-        BottomNavigationBarItem(icon: Icon(Icons.menu_book), label: "Wiki"),
-        BottomNavigationBarItem(icon: Icon(Icons.map), label: "Map"),
-      ],
-      selectedItemColor: Colors.redAccent,
-      unselectedItemColor: Colors.grey,
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.bottomLeft,
+          end: Alignment.topRight,
+          colors: [Colors.deepPurple, Colors.red],
+        ),
+      ),
+      child: BottomNavigationBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home, color: Colors.white),
+            label: "Home",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.contacts, color: Colors.white),
+            label: "Contacts",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.menu_book, color: Colors.white),
+            label: "Wiki",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.map, color: Colors.white),
+            label: "Map",
+          ),
+        ],
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.white70,
+        showUnselectedLabels: true,
+        type: BottomNavigationBarType.fixed,
+      ),
     );
   }
 
@@ -241,28 +296,70 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Text(
         title,
-        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
 
   Widget _placeholderCard(String text) {
     return Card(
-      elevation: 2,
-      child: Padding(padding: const EdgeInsets.all(16), child: Text(text)),
+      elevation: 3,
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      color: Colors.transparent,
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.bottomLeft,
+            end: Alignment.topRight,
+            colors: [Colors.pink, Colors.red],
+          ),
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Text(
+          text,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
     );
   }
 
   Widget _serviceTile(String name, IconData icon) {
     return Card(
-      child: ListTile(
-        leading: Icon(icon, color: Colors.redAccent),
-        title: Text(name),
-        trailing: IconButton(
-          icon: const Icon(Icons.navigation),
-          onPressed: () {
-            // open map tab
-          },
+      elevation: 3,
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      color: Colors.transparent,
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.bottomLeft,
+            end: Alignment.topRight,
+            colors: [Colors.pink, Colors.red],
+          ),
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+        ),
+        child: ListTile(
+          leading: Icon(icon, color: Colors.white),
+          title: Text(
+            name,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          trailing: IconButton(
+            icon: const Icon(Icons.navigation, color: Colors.white),
+            onPressed: () {
+              // open map tab
+            },
+          ),
         ),
       ),
     );

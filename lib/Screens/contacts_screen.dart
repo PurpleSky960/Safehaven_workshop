@@ -81,35 +81,56 @@ class _ContactsScreenState extends State<ContactsScreen> {
     required String tag,
   }) {
     return Card(
-      elevation: 2,
+      elevation: 3,
       margin: const EdgeInsets.symmetric(vertical: 8),
-      child: ListTile(
-        leading: const CircleAvatar(
-          backgroundColor: Colors.grey,
-          child: Icon(Icons.person, color: Colors.white),
+      color: Colors.transparent,
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.bottomLeft,
+            end: Alignment.topRight,
+            colors: [Colors.pink, Colors.red],
+          ),
+          borderRadius: BorderRadius.all(Radius.circular(12)),
         ),
-        title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text("$phone\nTag: $tag"),
-        isThreeLine: true,
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.call, color: Colors.green),
-              onPressed: () {},
+        child: ListTile(
+          leading: const CircleAvatar(
+            backgroundColor: Colors.white24,
+            child: Icon(Icons.person, color: Colors.white),
+          ),
+          title: Text(
+            name,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
-            IconButton(
-              icon: const Icon(Icons.message, color: Colors.blue),
-              onPressed: () {},
-            ),
-            PopupMenuButton<String>(
-              onSelected: (value) {},
-              itemBuilder: (context) => const [
-                PopupMenuItem(value: "edit", child: Text("Edit")),
-                PopupMenuItem(value: "pin", child: Text("Pin to top")),
-              ],
-            ),
-          ],
+          ),
+          subtitle: Text(
+            "$phone\nTag: $tag",
+            style: const TextStyle(color: Colors.white70),
+          ),
+          isThreeLine: true,
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.call, color: Colors.white),
+                onPressed: () {},
+              ),
+              IconButton(
+                icon: const Icon(Icons.message, color: Colors.white),
+                onPressed: () {},
+              ),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, color: Colors.white),
+                onSelected: (value) {},
+                itemBuilder: (context) => const [
+                  PopupMenuItem(value: "edit", child: Text("Edit")),
+                  PopupMenuItem(value: "pin", child: Text("Pin to top")),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
