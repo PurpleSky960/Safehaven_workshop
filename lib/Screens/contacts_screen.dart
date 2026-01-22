@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 
+//  CHANGED: importing dummy data from separate data file
+import '../data/contact_data.dart';
+
 class ContactsScreen extends StatefulWidget {
   const ContactsScreen({super.key});
 
@@ -12,7 +15,8 @@ class _ContactsScreenState extends State<ContactsScreen> {
   List<Contact> _contacts = [];
   bool _loading = true;
 
-  final List<String> _dummyContacts = ["AAA", "BBB", "CCC", "DDD", "EEE"];
+  //  CHANGED: removed local dummy list
+  // final List<String> _dummyContacts = ["AAA", "BBB", "CCC", "DDD", "EEE"];
 
   @override
   void initState() {
@@ -49,26 +53,27 @@ class _ContactsScreenState extends State<ContactsScreen> {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: showDummy
-            ? _dummyContacts
-                  .map(
-                    (name) => _contactCard(
-                      name: name,
-                      phone: "+91 9XXXXXXXXX",
-                      tag: "Dummy",
-                    ),
-                  )
-                  .toList()
+        //  CHANGED: using dummy data from ContactData file
+            ? ContactData.dummyNames
+            .map(
+              (name) => _contactCard(
+            name: name,
+            phone: "+91 9XXXXXXXXX",
+            tag: "Dummy",
+          ),
+        )
+            .toList()
             : _contacts.map((contact) {
-                final phone = contact.phones.isNotEmpty
-                    ? contact.phones.first.number
-                    : "No number";
+          final phone = contact.phones.isNotEmpty
+              ? contact.phones.first.number
+              : "No number";
 
-                return _contactCard(
-                  name: contact.displayName,
-                  phone: phone,
-                  tag: "Emergency",
-                );
-              }).toList(),
+          return _contactCard(
+            name: contact.displayName,
+            phone: phone,
+            tag: "Emergency",
+          );
+        }).toList(),
       ),
     );
   }
@@ -121,6 +126,9 @@ class _ContactsScreenState extends State<ContactsScreen> {
                 icon: const Icon(Icons.message, color: Colors.white),
                 onPressed: () {},
               ),
+
+              //  CHANGED: removed popup menu
+              /*
               PopupMenuButton<String>(
                 icon: const Icon(Icons.more_vert, color: Colors.white),
                 onSelected: (value) {},
@@ -129,6 +137,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                   PopupMenuItem(value: "pin", child: Text("Pin to top")),
                 ],
               ),
+              */
             ],
           ),
         ),

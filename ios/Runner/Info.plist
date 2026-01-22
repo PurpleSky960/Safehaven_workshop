@@ -60,6 +60,9 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 
+	<key>com.apple.security.network.client</key>
+	<true/>
+
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>

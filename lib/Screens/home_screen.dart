@@ -2,11 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:safehaven/Screens/contacts_screen.dart';
 import 'package:safehaven/Screens/wiki_screen.dart';
 import 'package:safehaven/Screens/first_aid_screen.dart';
-import 'package:safehaven/Screens/map_screen.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'package:url_launcher/url_launcher.dart';
+//import 'package:url_launcher/url_launcher.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:share_plus/share_plus.dart';
+//import 'dart:convert';
+//import 'package:http/http.dart' as http;
+
+class NearbyPlace {
+  final String name;
+  final String address;
+  final String type;
+  final String distance;
+
+  NearbyPlace({
+    required this.name,
+    required this.address,
+    required this.type,
+    required this.distance,
+  });
+}
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,6 +36,177 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
+  final Map<String, List<NearbyPlace>> _dummyNearbyData = {
+    "Hospitals": [
+      NearbyPlace(
+        name: "Pokémon Center",
+        address: "Cerulean City",
+        type: "hospital",
+        distance: "1.2 km",
+      ),
+      NearbyPlace(
+        name: "Saffron Medical Hub",
+        address: "Saffron City",
+        type: "hospital",
+        distance: "2.8 km",
+      ),
+    ],
+    "Police Stations": [
+      NearbyPlace(
+        name: "Officer Jenny HQ",
+        address: "Viridian City",
+        type: "police",
+        distance: "0.9 km",
+      ),
+      NearbyPlace(
+        name: "Pewter Law Unit",
+        address: "Pewter City",
+        type: "police",
+        distance: "3.4 km",
+      ),
+    ],
+    "Fire Stations": [
+      NearbyPlace(
+        name: "Cinnabar Fire Dept",
+        address: "Cinnabar Island",
+        type: "fire",
+        distance: "5.1 km",
+      ),
+      NearbyPlace(
+        name: "Lavender Safety Unit",
+        address: "Lavender Town",
+        type: "fire",
+        distance: "2.0 km",
+      ),
+    ],
+    "Shelters": [
+      NearbyPlace(
+        name: "Mt. Moon Shelter",
+        address: "Route 4",
+        type: "shelter",
+        distance: "6.7 km",
+      ),
+      NearbyPlace(
+        name: "Celadon Community Hall",
+        address: "Celadon City",
+        type: "shelter",
+        distance: "1.9 km",
+      ),
+    ],
+  };
+
+  String _currentLocation = "Fetching...";
+  Position? _currentPosition;
+
+  // List<NearbyPlace> _nearbyPlaces = [];
+  // bool _loadingPlaces = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _getCurrentLocation();
+  }
+
+  Future<void> _getCurrentLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      setState(() => _currentLocation = "Location disabled");
+      return;
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        setState(() => _currentLocation = "Permission denied");
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      setState(() => _currentLocation = "Permission permanently denied");
+      return;
+    }
+
+    final position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+
+    final placemarks = await placemarkFromCoordinates(
+      position.latitude,
+      position.longitude,
+    );
+
+    final place = placemarks.first;
+
+    setState(() {
+      _currentPosition = position;
+      _currentLocation = "${place.locality}, ${place.administrativeArea}";
+    });
+
+    //_fetchNearbyPlaces();
+  }
+
+  // Future<void> _fetchNearbyPlaces() async {
+  //   if (_currentPosition == null) return;
+
+  //   setState(() => _loadingPlaces = true);
+
+  //   final lat = _currentPosition!.latitude;
+  //   final lon = _currentPosition!.longitude;
+
+  //   const amenities = ["hospital", "police", "fire_station", "shelter"];
+
+  //   final query =
+  //       '''
+  // [out:json];
+  // (
+  //   node["amenity"~"${amenities.join('|')}"](around:3000,$lat,$lon);
+  // );
+  // out;
+  // ''';
+
+  //   try {
+  //     final response = await http.post(
+  //       Uri.parse("https://overpass-api.de/api/interpreter"),
+  //       body: {"data": query},
+  //     );
+
+  //     if (response.statusCode != 200) return;
+
+  //     final data = json.decode(response.body);
+  //     final List elements = data["elements"];
+
+  //     final places = elements.map((e) {
+  //       return NearbyPlace(
+  //         name: e["tags"]?["name"] ?? "Unnamed",
+  //         type: e["tags"]?["amenity"] ?? "unknown",
+  //         lat: e["lat"],
+  //         lon: e["lon"],
+  //       );
+  //     }).toList();
+
+  //     setState(() => _nearbyPlaces = places);
+  //   } catch (_) {
+  //     debugPrint("Failed to fetch nearby places");
+  //   } finally {
+  //     setState(() => _loadingPlaces = false);
+  //   }
+  // }
+
+  void _shareLocation() {
+    if (_currentPosition == null) return;
+
+    final lat = _currentPosition!.latitude;
+    final lon = _currentPosition!.longitude;
+
+    final url = "https://www.google.com/maps?q=$lat,$lon";
+    Share.share("My current location: $url");
+  }
+
   Widget _buildBody() {
     switch (_currentIndex) {
       case 0:
@@ -26,8 +215,6 @@ class _HomeScreenState extends State<HomeScreen> {
         return const ContactsScreen();
       case 2:
         return const WikiScreen();
-      case 3:
-        return const MapScreen();
       default:
         return _buildHomeBody();
     }
@@ -35,18 +222,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final ImagePicker _picker = ImagePicker();
 
-  Future<void> _openGoogleLens() async {
-    final Uri lensUri = Uri.parse("https://lens.google.com/");
-
-    if (await canLaunchUrl(lensUri)) {
-      await launchUrl(lensUri, mode: LaunchMode.externalApplication);
-    } else {
-      throw "Could not launch Google Lens";
-    }
+  Future<void> _shareImageWithLens(File image) async {
+    await Share.shareXFiles([XFile(image.path)], text: "Open with Google Lens");
   }
 
   // Capture image and store locally
-  Future<void> _captureAndSaveImage() async {
+  Future<void> _captureAndSaveImage({bool shareAfter = false}) async {
     final XFile? image = await _picker.pickImage(source: ImageSource.camera);
 
     if (image == null) return;
@@ -59,12 +240,15 @@ class _HomeScreenState extends State<HomeScreen> {
       await imagesDir.create(recursive: true);
     }
 
-    final String newPath =
-        "$imagesDirPath/${DateTime.now().millisecondsSinceEpoch}.jpg";
+    final File savedImage = await File(
+      image.path,
+    ).copy("$imagesDirPath/${DateTime.now().millisecondsSinceEpoch}.jpg");
 
-    await File(image.path).copy(newPath);
+    debugPrint("Image saved to: ${savedImage.path}");
 
-    debugPrint("Image saved to: $newPath");
+    if (shareAfter) {
+      await _shareImageWithLens(savedImage);
+    }
   }
 
   // Bottom sheet options
@@ -78,7 +262,8 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               ListTile(
                 leading: const Icon(Icons.camera_alt),
-                title: const Text("Open Camera"),
+                title: const Text("Capture Image"),
+                subtitle: const Text("Saved locally"),
                 onTap: () {
                   Navigator.pop(context);
                   _captureAndSaveImage();
@@ -86,10 +271,11 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.search),
-                title: const Text("Open Google Lens"),
-                onTap: () {
+                title: const Text("Search with Google Lens"),
+                subtitle: const Text("Uses share menu"),
+                onTap: () async {
                   Navigator.pop(context);
-                  _openGoogleLens();
+                  await _captureAndSaveImage(shareAfter: true);
                 },
               ),
             ],
@@ -162,17 +348,18 @@ class _HomeScreenState extends State<HomeScreen> {
           // Location
           Expanded(
             child: GestureDetector(
-              onTap: () {},
+              onTap: _shareLocation,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
+                children: [
+                  const Text(
                     "Current Location",
                     style: TextStyle(fontSize: 12, color: Colors.white70),
                   ),
                   Text(
-                    "Location",
-                    style: TextStyle(fontSize: 14, color: Colors.white),
+                    _currentLocation,
+                    style: const TextStyle(fontSize: 14, color: Colors.white),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
@@ -223,22 +410,24 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _sectionTitle("Weather & Forecast"),
-          _placeholderCard("Sunny • 32°C\nNext 48 hrs forecast"),
-
-          _sectionTitle("Alerts & Warnings"),
-          _placeholderCard("No active alerts\nLast updated: 10:30 AM"),
-
-          _sectionTitle("Area News"),
-          _placeholderCard("Road closure near Ring Road\nRelief camp opened"),
-
-          _sectionTitle("Nearby Services"),
-          _serviceTile("Hospital", Icons.local_hospital),
-          _serviceTile("Police Station", Icons.local_police),
-          _serviceTile("Fire Station", Icons.local_fire_department),
-          _serviceTile("Shelter", Icons.home),
-        ],
+        children: _dummyNearbyData.entries.map((entry) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _sectionTitle(entry.key),
+              SizedBox(
+                height: 170,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: entry.value.length,
+                  itemBuilder: (context, index) {
+                    return _nearbyPlaceCard(entry.value[index]);
+                  },
+                ),
+              ),
+            ],
+          );
+        }).toList(),
       ),
     );
   }
@@ -276,10 +465,6 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icon(Icons.menu_book, color: Colors.white),
             label: "Wiki",
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.map, color: Colors.white),
-            label: "Map",
-          ),
         ],
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white70,
@@ -305,60 +490,107 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _placeholderCard(String text) {
-    return Card(
-      elevation: 3,
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      color: Colors.transparent,
-      child: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.bottomLeft,
-            end: Alignment.topRight,
-            colors: [Colors.pink, Colors.red],
-          ),
-          borderRadius: BorderRadius.all(Radius.circular(12)),
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Text(
-          text,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ),
-    );
-  }
+  // Widget _serviceTile(String name, IconData icon) {
+  //   return Card(
+  //     elevation: 3,
+  //     margin: const EdgeInsets.symmetric(vertical: 6),
+  //     color: Colors.transparent,
+  //     child: Container(
+  //       decoration: const BoxDecoration(
+  //         gradient: LinearGradient(
+  //           begin: Alignment.bottomLeft,
+  //           end: Alignment.topRight,
+  //           colors: [Colors.pink, Colors.red],
+  //         ),
+  //         borderRadius: BorderRadius.all(Radius.circular(12)),
+  //       ),
+  //       child: ListTile(
+  //         leading: Icon(icon, color: Colors.white),
+  //         title: Text(
+  //           name,
+  //           style: const TextStyle(
+  //             color: Colors.white,
+  //             fontWeight: FontWeight.bold,
+  //           ),
+  //         ),
+  //         trailing: IconButton(
+  //           icon: const Icon(Icons.navigation, color: Colors.white),
+  //           onPressed: () {
+  //             ScaffoldMessenger.of(context).showSnackBar(
+  //               const SnackBar(content: Text("Map feature coming soon")),
+  //             );
+  //           },
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
 
-  Widget _serviceTile(String name, IconData icon) {
-    return Card(
-      elevation: 3,
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      color: Colors.transparent,
-      child: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.bottomLeft,
-            end: Alignment.topRight,
-            colors: [Colors.pink, Colors.red],
-          ),
-          borderRadius: BorderRadius.all(Radius.circular(12)),
-        ),
-        child: ListTile(
-          leading: Icon(icon, color: Colors.white),
-          title: Text(
-            name,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
+  Widget _nearbyPlaceCard(NearbyPlace place) {
+    IconData icon;
+
+    switch (place.type) {
+      case "hospital":
+        icon = Icons.add;
+        break;
+      case "police":
+        icon = Icons.local_police;
+        break;
+      case "fire":
+        icon = Icons.local_fire_department;
+        break;
+      case "shelter":
+        icon = Icons.home;
+        break;
+      default:
+        icon = Icons.place;
+    }
+
+    return Container(
+      width: 240,
+      margin: const EdgeInsets.only(right: 12),
+      child: Card(
+        elevation: 3,
+        color: Colors.transparent,
+        child: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.bottomLeft,
+              end: Alignment.topRight,
+              colors: [Colors.pink, Colors.red],
             ),
+            borderRadius: BorderRadius.all(Radius.circular(14)),
           ),
-          trailing: IconButton(
-            icon: const Icon(Icons.navigation, color: Colors.white),
-            onPressed: () {
-              // open map tab
-            },
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: Colors.white, size: 28),
+              const SizedBox(height: 8),
+              Text(
+                place.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                place.address,
+                style: const TextStyle(color: Colors.white70),
+              ),
+              const Spacer(),
+              Text(
+                place.distance,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
         ),
       ),
