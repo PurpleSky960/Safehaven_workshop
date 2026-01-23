@@ -220,71 +220,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  final ImagePicker _picker = ImagePicker();
-
-  Future<void> _shareImageWithLens(File image) async {
-    await Share.shareXFiles([XFile(image.path)], text: "Open with Google Lens");
-  }
-
-  // Capture image and store locally
-  Future<void> _captureAndSaveImage({bool shareAfter = false}) async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.camera);
-
-    if (image == null) return;
-
-    final Directory appDir = await getApplicationDocumentsDirectory();
-    final String imagesDirPath = "${appDir.path}/captured_images";
-
-    final Directory imagesDir = Directory(imagesDirPath);
-    if (!await imagesDir.exists()) {
-      await imagesDir.create(recursive: true);
-    }
-
-    final File savedImage = await File(
-      image.path,
-    ).copy("$imagesDirPath/${DateTime.now().millisecondsSinceEpoch}.jpg");
-
-    debugPrint("Image saved to: ${savedImage.path}");
-
-    if (shareAfter) {
-      await _shareImageWithLens(savedImage);
-    }
-  }
-
-  // Bottom sheet options
-  void _showImageSourceOptions(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      builder: (_) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.camera_alt),
-                title: const Text("Capture Image"),
-                subtitle: const Text("Saved locally"),
-                onTap: () {
-                  Navigator.pop(context);
-                  _captureAndSaveImage();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.search),
-                title: const Text("Search with Google Lens"),
-                subtitle: const Text("Uses share menu"),
-                onTap: () async {
-                  Navigator.pop(context);
-                  await _captureAndSaveImage(shareAfter: true);
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -383,7 +318,7 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.camera_alt),
             color: Colors.white,
             onPressed: () {
-              _showImageSourceOptions(context);
+              "Coming soon";
             },
           ),
 
